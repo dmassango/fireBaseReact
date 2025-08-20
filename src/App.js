@@ -1,7 +1,7 @@
 import { db } from './firebaseConnection';
 import './app.css'
 import { useState } from 'react';
-import { doc, setDoc, collection, addDoc, getDoc, getDocs, updateDoc} from 'firebase/firestore';
+import { doc, setDoc, collection, addDoc, getDoc, getDocs, updateDoc, deleteDoc} from 'firebase/firestore';
 
 function App() {
 
@@ -11,6 +11,7 @@ function App() {
   const [posts, setPosts] = useState([]);
 
   async function handleAdd(){
+    /*alert("Cadastrar");*/
     /*await setDoc(doc(db, "posts", "12345"), {
       titulo: titulo,
       autor: autor,
@@ -37,7 +38,7 @@ function App() {
   }
 
   async function handleGet(){
-
+/*alert("Buscar");*/
      /* const postRef = doc(db, "posts", "1234")
 
       await getDoc(postRef)
@@ -69,9 +70,11 @@ function App() {
   })
 }
 
-async function handleUpdate(){
-  /*alert("Funciona");*/
-  const docRef = doc(db, "posts", idPost)
+handleGet();
+
+async function handleUpdate(id){
+  /*alert("Actualizar");*/
+  const docRef = doc(db, "posts", id)
 
   await updateDoc (docRef, {
     titulo: titulo,
@@ -89,20 +92,32 @@ async function handleUpdate(){
 
   handleGet();
 }
+async function handleDelete(id){
+  /*alert("Apagar");*/
+  const docRef = doc(db, "posts", id)
 
-
+  await deleteDoc (docRef)
+  .then(()=>{
+    console.log("POST APAGADO")
+      setIdPost('');
+  })
+  .catch(()=>{
+    console.log("GERROU ERRO")
+  })
+  handleGet();
+}
   return (
     <div className="App">
         <h1>ReactJS + Firebase :-)</h1>
 
         <div className='container'>
 
-        <label>Id do Post:</label>
+        {/*<label>Id do Post:</label>
             <input
               placeholder='Digite ID do Post'
               value={idPost}
               onChange={(e)=> setIdPost(e.target.value)}
-            />
+  />*/}
 
           <label>Titulo:</label>
             <textarea 
@@ -121,8 +136,7 @@ async function handleUpdate(){
             />
 
           <button onClick={handleAdd}>Cadastrar</button>
-          <button onClick={handleGet}>Buscar Lista</button>
-          <button onClick={handleUpdate}>Actualizar</button>
+          {/*<button onClick={handleGet}>Buscar Lista</button>*/}
 
             <ul>
               {posts.map((post)=>{
@@ -131,6 +145,8 @@ async function handleUpdate(){
                     <strong>ID: {post.id}</strong><br/>
                       <span>Titulo: {post.titulo}</span><br/>
                       <span>Autor: {post.autor}</span><br/><br/>
+                      <button onClick={()=>handleDelete(post.id)}>Apagar</button>
+                      <button onClick={()=>handleUpdate(post.id)}>Actualizar</button><br/><br/>
                     </li>
                   )
               })}
