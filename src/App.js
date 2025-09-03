@@ -1,7 +1,23 @@
-import { db } from './firebaseConnection';
+import { db, auth } from './firebaseConnection';
 import './app.css'
-import { useState } from 'react';
-import { doc, setDoc, collection, addDoc, getDoc, getDocs, updateDoc, deleteDoc} from 'firebase/firestore';
+import { useState, useEffect } from 'react';
+import { 
+  doc, 
+  setDoc, 
+  collection, 
+  addDoc, 
+  getDoc, 
+  getDocs, 
+  updateDoc, 
+  deleteDoc,
+  onSnapshot} from 'firebase/firestore';
+
+  import { 
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged
+  } from 'firebase/auth';
 
 function App() {
 
@@ -9,6 +25,55 @@ function App() {
   const [autor, setAutor] = useState('');
   const [idPost, setIdPost] = useState('');
   const [posts, setPosts] = useState([]);
+
+  const [email, setEmail] = useState('');
+  const [senha, setSenha] = useState('');
+
+  const [user, setUser] = useState(false);
+  const [userDetail, setUserDetail] = useState({});
+
+  useEffect(()=>{
+    async function loadPosts(){
+        const onsub = onSnapshot(collection(db, "posts"), (snapshot)=>{
+          let listaPost = [];
+
+          snapshot.forEach((doc) => { 
+            listaPost.push({
+              id: doc.id,
+              titulo: doc.data().titulo,
+              autor: doc.data().autor,
+            })
+          })
+    
+         setPosts(listaPost);
+        })
+    }
+    loadPosts()
+  },[])
+
+  useEffect(()=>{
+    async function checkLogin(){
+      onAuthStateChanged(auth, (user)=>{
+        if(user){
+          console.log(user);
+          setUser(true)
+          setUserDetail({
+            uid: user.uid,
+            email: user.email
+          })
+        }else{
+          setUser(false)
+          setUserDetail({})
+        }
+      })
+    }
+
+    checkLogin();
+
+  },[])
+
+
+  
 
   async function handleAdd(){
     /*alert("Cadastrar");*/
@@ -34,7 +99,6 @@ function App() {
       console.log("GERROU ERRO" + error)
     })
 
-    handleGet();
   }
 
   async function handleGet(){
@@ -70,8 +134,6 @@ function App() {
   })
 }
 
-handleGet();
-
 async function handleUpdate(id){
   /*alert("Actualizar");*/
   const docRef = doc(db, "posts", id)
@@ -90,34 +152,93 @@ async function handleUpdate(id){
     console.log("GERROU ERRO")
   })
 
-  handleGet();
 }
 async function handleDelete(id){
   /*alert("Apagar");*/
   const docRef = doc(db, "posts", id)
 
   await deleteDoc (docRef)
-  .then(()=>{
-    console.log("POST APAGADO")
-      setIdPost('');
-  })
-  .catch(()=>{
-    console.log("GERROU ERRO")
-  })
-  handleGet();
+  
 }
+
+async function novoUtilizador(){
+    await createUserWithEmailAndPassword(auth, email, senha)
+    .then(()=>{
+      console.log("POST APAGADO")
+      setEmail('')
+      setSenha('')
+    })
+    .catch((error)=>{
+      if(error.code === 'auth/weak-password'){
+        alert("Senha muito fraca")
+      }else if (error.code === 'auth/email-already-in-use'){
+        alert("Email ja existe")
+      }
+    })
+}
+async function logarUtilizador(){
+  await signInWithEmailAndPassword(auth, email, senha)
+  .then((value)=>{
+    console.log("LOGADO COM SUCESSO")
+    setUserDetail({
+      uid: value.user.uid,
+      email: value.user.email
+    })
+    setUser(true)
+    
+    setEmail('')
+    setSenha('')
+  })
+  .catch((error)=>{
+    console.log("O email não tem formato válido.: " + error.code)
+  })
+}
+
+async function fazerLogout(){
+  await signOut(auth)
+  setUser(false)
+  setUserDetail({})
+}
+
   return (
     <div className="App">
         <h1>ReactJS + Firebase :-)</h1>
 
-        <div className='container'>
+        { user && (
+          <div>
+            <strong>Seja bem-vindo(a) Estas Logado</strong><br/>
+            <span>ID: {userDetail.uid} - Email: {userDetail.email}</span>
+            <br/><button onClick={fazerLogout}>Sair</button>
+            <br/><br/>
+          </div>
+        )}
 
-        {/*<label>Id do Post:</label>
+        <div className='container'>
+          <h2>Utilizadores</h2>
+          <label>Emal:</label>
             <input
-              placeholder='Digite ID do Post'
-              value={idPost}
-              onChange={(e)=> setIdPost(e.target.value)}
-  />*/}
+              placeholder='Digite seu Email'
+              value={email}
+              onChange={(e)=> setEmail(e.target.value)}
+          />
+
+
+        <label>Senha:</label>
+            <input
+              placeholder='Digite sua senha'
+              value={senha}
+              onChange={(e)=> setSenha(e.target.value)}
+          />
+        <button onClick={novoUtilizador}>Cadastrar</button>
+        <button onClick={logarUtilizador}>Login</button>
+                   
+        </div>
+        <br/>
+        <br/>
+        <hr/>
+
+        <h2>Posts</h2>
+        <div className='container'>
 
           <label>Titulo:</label>
             <textarea 
